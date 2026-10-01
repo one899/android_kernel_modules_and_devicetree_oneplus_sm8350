@@ -2596,3 +2596,12 @@
 	};
 };
 //#endif OPLUS_FEATURE_THERMAL
+/* ColorArchive partition early reader (drivers/misc/color_archive.c) */
+&soc {
+	color_archive: color_archive {
+		compatible = "oplus,color-archive";
+		ooplus,disk-name = "sda";
+		ooplus,partition-name = "ColorArchive";
+		ooplus,file-name = "/archive.bin";
+	};
+};
