@@ -788,6 +788,23 @@ static ssize_t battery_ui_soh_show(struct device *dev, struct device_attribute *
 
 	return sprintf(buf, "%d\n", ui_soh);
 }
+static ssize_t battery_ui_soh_store(struct device *dev, struct device_attribute *attr,
+	const char *buf, size_t count)
+{
+	int ret = 0;
+	int ui_soh;
+
+	if (kstrtos32(buf, 0, &ui_soh)) {
+		chg_err("buf error\n");
+		return -EINVAL;
+	}
+
+	ret = oplus_gauge_set_battinfo_ui_soh(ui_soh);
+	if (ret < 0)
+		chg_err("set battery ui soh error");
+
+	return count;
+}
 static DEVICE_ATTR_RW(battery_ui_soh);
 
 static ssize_t battery_used_flag_show(struct device *dev, struct device_attribute *attr, char *buf)
