@@ -462,6 +462,9 @@ static DEVICE_ATTR_RO(smartchg_soh_support);
 static ssize_t battery_soh_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct oplus_chg_chip *chip = NULL;
+	int soh;
+	int cap;
+	int fcc;
 
 	chip = (struct oplus_chg_chip *)dev_get_drvdata(oplus_battery_dir);
 	if (!chip) {
@@ -469,7 +472,30 @@ static ssize_t battery_soh_show(struct device *dev, struct device_attribute *att
 		return -EINVAL;
 	}
 
-	return sprintf(buf, "%d\n", chip->batt_soh);
+	/*
+	 * battery-health: chip->batt_soh has been measured reporting 3034-3082 on
+	 * the OnePlus 9RT -- a raw gauge register value, not a percentage -- which
+	 * is outside 0..100 and makes the ColorOS battery-health page fail.
+	 * Only report something plausible; otherwise derive it from the capacities
+	 * already exposed by the battery_fcc and design_capacity nodes. Note that
+	 * oplus_gauge_get_batt_fcc() disagrees with chip->batt_fcc on this device
+	 * (1916 vs 3832), so use chip->batt_fcc to stay consistent with the node.
+	 */
+	soh = chip->batt_soh;
+	if (soh <= 0 || soh > 100) {
+		cap = chip->batt_capacity_mah;
+		fcc = chip->batt_fcc;
+		if (cap > 0 && fcc > 0)
+			soh = fcc * 100 / cap;
+		else
+			soh = 100;
+		if (soh > 100)
+			soh = 100;
+		chg_info("batt_soh raw=%d -> reporting %d (fcc=%d cap=%d)\n",
+			chip->batt_soh, soh, fcc, cap);
+	}
+
+	return sprintf(buf, "%d\n", soh);
 }
 static DEVICE_ATTR_RO(battery_soh);
 
