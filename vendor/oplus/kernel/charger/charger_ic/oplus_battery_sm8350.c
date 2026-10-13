@@ -3140,9 +3140,24 @@ static int battery_psy_get_prop(struct power_supply *psy,
 		pval->intval = chip->batt_rm * 1000;
 		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
-		pval->intval = chip->charger_cycle;
+		/*
+		 * charger_cycle comes from the charger IC and read 5 on this device,
+		 * while the gauge reports the real count in batt_cc (152). Use the
+		 * same source and the same override rule as the battery_cc sysfs
+		 * node so both agree.
+		 */
+		pval->intval = chip->batt_debug_cycle_count ?
+			chip->batt_debug_cycle_count : chip->batt_cc;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		/*
+		 * Design capacity must be the design value, not the current full
+		 * capacity. Both properties used to share one case and return
+		 * batt_fcc, which made charge_full == charge_full_design and pinned
+		 * the framework-side state of health at 100% forever.
+		 */
+		pval->intval = chip->batt_capacity_mah * 1000;
+		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 		pval->intval = chip->batt_fcc * 1000;
 		break;
